@@ -908,7 +908,13 @@ struct llm_graph_context {
             ggml_tensor * sinks,   // [n_head_q]
             ggml_tensor * v_mla,   // [n_embd_head_v_mla, n_embd_head_v, n_head_v]
                   float   kq_scale,
-                    int   il) const;
+                    int   il,
+                    // Force the non-flash-attention path even when cparams.flash_attn is set.
+                    // Used by the Gemma4 MTP cross-attention (head_dim 512, gqa_ratio 2), a shape
+                    // for which no CUDA flash-attention kernel is compiled (MMA/TILE only cover
+                    // gqa_ratio % 4 == 0 at D=512). The op is a single query token, so the non-FA
+                    // path is negligible while the rest of the model keeps full flash attention.
+                    bool   force_no_flash_attn = false) const;
 
     llm_graph_input_attn_no_cache * build_attn_inp_no_cache() const;
 

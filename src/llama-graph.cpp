@@ -1889,7 +1889,8 @@ ggml_tensor * llm_graph_context::build_attn_mha(
          ggml_tensor * sinks,
          ggml_tensor * v_mla,
                float   kq_scale,
-                 int   il) const {
+                 int   il,
+                 bool   force_no_flash_attn) const {
     const bool v_trans = v->nb[1] > v->nb[2];
 
     // split the batch into streams if needed
@@ -1907,7 +1908,7 @@ ggml_tensor * llm_graph_context::build_attn_mha(
 
     ggml_tensor * cur;
 
-    const bool use_flash_attn = cparams.flash_attn && kq_b == nullptr;
+    const bool use_flash_attn = cparams.flash_attn && kq_b == nullptr && !force_no_flash_attn;
 
     if (use_flash_attn) {
         GGML_ASSERT(kq_b == nullptr && "Flash attention does not support KQ bias yet");
@@ -2528,7 +2529,13 @@ ggml_tensor * llm_graph_context::build_attn_mtp(
         q = ggml_turbo_wht(ctx0, q, 0, 0, innerq_scale);
     }
 
-    ggml_tensor * cur = build_attn_mha(q, k, v, kq_b, kq_mask, sinks, v_mla, kq_scale, il_mtp);
+    // Gemma4 MTP cross-attention is head_dim 512 with gqa_ratio 2 — a shape for which no CUDA
+    // flash-attention kernel is compiled (MMA/TILE large-head variants require gqa_ratio % 4 == 0).
+    // Force the non-FA path for this single-query-token op so the server can run with -fa on
+    // (with f16 KV). turbo3 KV + FA at D=512 still needs a dedicated WHT-aware kernel (tracked
+    // separately). When flash_attn is off this is a no-op (the path is already non-FA).
+    ggml_tensor * cur = build_attn_mha(q, k, v, kq_b, kq_mask, sinks, v_mla, kq_scale, il_mtp,
+                                       /* force_no_flash_attn = */ true);
     cb(cur, "kqv_out_mtp", il_mtp);
 
     if (v->type == GGML_TYPE_TURBO3_0 || v->type == GGML_TYPE_TURBO4_0 || v->type == GGML_TYPE_TURBO2_0) {
