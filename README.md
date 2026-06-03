@@ -36,17 +36,28 @@ Pick the smallest fork that covers what you actually need — each adds scope (a
 
 ## Benchmark — MTP vs. baseline
 
-**Jetson Orin NX**, Gemma 4 E4B (`Q4_K_M`) + `gemma4_assistant` MTP draft + `mmproj` (f16), `-c 4096`, f16 KV, greedy (deterministic, so MTP is lossless). Generation throughput is read from the server's own `timings`.
+**Jetson Orin NX**, Gemma 4 E4B (`Q4_K_M`) target + `gemma4_assistant` MTP draft (`Q4_K_M`) + `mmproj` (f16), `-c 4096`, f16 KV, `-fa off`, draft block size `B = 2`, greedy / `temperature 0` (deterministic, so MTP is lossless). Throughput and draft-acceptance are read from the server's own `timings` (`predicted_per_second`, `draft_n_accepted / draft_n`).
 
 | Test | Baseline (tk/s) | **MTP (tk/s)** | Speedup | Draft accept |
 |------|:---:|:---:|:---:|:---:|
-| Cold start | 13.33 | **15.42** | 1.16× | 37.5% |
-| Short | 13.65 | **16.26** | 1.19× | 37.5% |
-| Medium (256 tok) | 13.20 | **16.47** | 1.25× | 41.1% |
-| Long (512 tok) | 12.83 | **17.65** | 1.38× | 48.8% |
-| Photo / vision (200 tok) | 12.55 | **17.50** | 1.39× | 48.5% |
+| Short (~40 tok) | 13.73 | **19.11** | 1.39× | 65.2% |
+| Medium (256 tok) | 13.44 | **18.75** | 1.39× | 63.9% |
+| Long (512 tok) | 13.08 | **18.77** | 1.44× | 64.5% |
+| Image / vision (200 tok) | 12.76 | **18.44** | 1.45× | 61.0% |
 
-MTP speedup scales with output length as draft acceptance climbs (37% → 49%), reaching **~1.4×** on long-form *and* vision generation. On the long answer that's a **40.4 s → 29.6 s** wall-clock win; on the photo, **18.3 s → 14.1 s**.
+MTP holds a steady **~1.4×** on long-form text *and* on vision generation. On the long answer that's a **39.1 s → 27.3 s** wall-clock win; on the image, **15.7 s → 10.8 s** — multimodal speculative decoding at essentially the same acceptance as text.
+
+> **Acceptance is workload-dependent.** The draft-accept rate is how often the assistant head guesses the target's *next greedy token*, so it tracks how predictable the output is: explanatory prose accepts high (~61–65% above), while short / cold-start, code, or numeric spans accept lower (≈37–49% on terser prompts). Treat it as a range, not a single figure.
+
+### Tuning — draft block size
+
+`--draft-block-size B` makes the head draft `B − 1` tokens per round. On the Edge centroid head, **`B = 2` is the sweet spot** — it maximizes *both* acceptance and throughput. Larger blocks append low-probability tail tokens that drag the aggregate accept rate down *and* spend extra draft compute, so they lose on this head (same text prompts as above):
+
+| `--draft-block-size` | Draft tokens / round | Accept | tk/s |
+|:---:|:---:|:---:|:---:|
+| **2** (default) | 1 | **64.3%** | **18.8** |
+| 3 | 2 | 52.7% | 18.1 |
+| 4 | 3 | 41.4% | 16.0 |
 
 ---
 
@@ -65,7 +76,7 @@ Run Gemma 4 E4B with the MTP draft head **and** multimodal, OpenAI-compatible se
 ./build/bin/llama-server \
   -m   gemma-4-E4B-it-Q4_K_M.gguf \
   -md  gemma-4-E4B-it-assistant-mtp-Q4_K_M.gguf \
-  --spec-type mtp --spec-draft-n-max 2 \
+  --spec-type mtp --spec-draft-n-max 2 --draft-block-size 2 \
   --mmproj mmproj-gemma-4-e4b-f16.gguf \
   -c 4096 -ngl 99 -ngld 99 \
   -ctk f16 -ctv f16 -ctkd f16 -ctvd f16 \
