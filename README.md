@@ -59,6 +59,23 @@ MTP holds a steady **~1.4×** on long-form text *and* on vision generation. On t
 | 3 | 2 | 52.7% | 18.1 |
 | 4 | 3 | 41.4% | 16.0 |
 
+### Desktop / big-GPU? Temper expectations — these are *bandwidth-bound* wins
+
+MTP and `turbo*` KV pay off when the target's decode is **memory-bandwidth-bound** — the regime of edge devices like the Orin. A fast desktop GPU runs a model this small **compute-bound**: it's already near its compute ceiling, so there's little headroom for speculation to recover, and the turbo dequant just adds compute the GPU wasn't waiting on.
+
+Same harness on an **RTX A5000** (24 GB, Ampere `sm_86`), E4B `Q4_K_M`, `B = 2`, greedy, median tk/s:
+
+| Config | tk/s | vs f16 base | Draft accept |
+|---|:---:|:---:|:---:|
+| f16, baseline | 108.4 | — | — |
+| **f16 + MTP** | **115.9** | 1.07× | 65.6% |
+| turbo3, baseline | 94.6 | 0.87× | — |
+| turbo3 + MTP | 91.1 | 0.84× | 64.9% |
+
+On a big GPU, MTP buys only ~**1.07×** (vs **1.4×** on the Orin), and `turbo3` is a net *loss* — its 3-bit unpack costs compute the GPU isn't bandwidth-starved for. Note draft **acceptance is the same ~65% as on the Orin**: acceptance is a property of the model + prompt, *not* the hardware — only the throughput *payoff* is hardware-dependent. **If you have a high-end discrete GPU and don't need the KV-memory savings, plain f16 (optionally + MTP) is the simplest choice; the speculative/turbo machinery is built for the bandwidth-bound edge.**
+
+> **Scope of these numbers.** All benchmarks above are **Gemma 4 E4B**, this fork's primary target. The larger `gemma4_assistant` heads (**26B-A4B / 31B**) load and run, but their MTP throughput/acceptance haven't been measured yet — those numbers are **pending**.
+
 ---
 
 ## Quick start
@@ -119,7 +136,7 @@ WHT-rotated low-bit quantization with backend-native kernels (Metal `TurboFlash`
 
 Weights can also be quantized to `TQ3_1S` / `TQ4_1S` via `llama-quantize`. See the upstream forks above for the full TurboQuant documentation.
 
-> **Note:** `turbo*` KV with the Gemma 4 MTP draft currently requires `-fa off` (see the flash-attention section). Plain (non-MTP) inference can use `turbo*` KV with `-fa on` as usual.
+> **Note:** MTP runs on **`-ctk f16` KV** by default. `turbo*` KV + MTP **also works** (the MTP cross-attn dequantizes the turbo V on its non-FA path), giving ~4× smaller KV — but since f16 KV already fits 128 K context on a 16 GB Orin, reach for `turbo3` with MTP only when you need very long context or are memory-tight. Plain (non-MTP) inference uses `turbo*` KV with `-fa on` as usual. Details in **[MTP-flash-attention.md](MTP-flash-attention.md)** (Option 3).
 
 ---
 

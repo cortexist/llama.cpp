@@ -1893,6 +1893,20 @@ ggml_tensor * llm_graph_context::build_attn_mha(
                  bool   force_no_flash_attn) const {
     const bool v_trans = v->nb[1] > v->nb[2];
 
+    const bool use_flash_attn = cparams.flash_attn && kq_b == nullptr && !force_no_flash_attn;
+
+    // TurboQuant: the non-FA path transpose-copies V, which is impossible for block-quantized
+    // turbo types — transposing the 128-element WHT blocks shatters them (there is no, and cannot
+    // be a meaningful, turbo->turbo transpose-copy). When this attention will run non-FA,
+    // dequantize V to f32 up front while it is still contiguous (before the permute below). In
+    // practice only the MTP cross-attn reaches the non-FA branch with turbo V (the main model
+    // always uses FA for turbo KV). v_was_turbo preserves the inverse-WHT decision further down.
+    const bool v_was_turbo = (v->type == GGML_TYPE_TURBO3_0 || v->type == GGML_TYPE_TURBO4_0 || v->type == GGML_TYPE_TURBO2_0);
+    if (v_was_turbo && !use_flash_attn) {
+        v = ggml_cast(ctx0, v, GGML_TYPE_F32);
+        cb(v, "v_deturbo", il);
+    }
+
     // split the batch into streams if needed
     const auto n_stream = k->ne[3];
 
@@ -1907,8 +1921,6 @@ ggml_tensor * llm_graph_context::build_attn_mha(
     // vec_dot_fattn_vec_KQ_turbo3_0) was fixed in fattn-common.cuh to match f16 pattern.
 
     ggml_tensor * cur;
-
-    const bool use_flash_attn = cparams.flash_attn && kq_b == nullptr && !force_no_flash_attn;
 
     if (use_flash_attn) {
         GGML_ASSERT(kq_b == nullptr && "Flash attention does not support KQ bias yet");
@@ -2013,8 +2025,10 @@ ggml_tensor * llm_graph_context::build_attn_mha(
         ggml_tensor * kqv = ggml_mul_mat(ctx0, v, kq);
         cb(kqv, "kqv", il);
 
-        // TurboQuant: inverse WHT on attention output (non-FA path)
-        if (v->type == GGML_TYPE_TURBO3_0 || v->type == GGML_TYPE_TURBO4_0 || v->type == GGML_TYPE_TURBO2_0) {
+        // TurboQuant: inverse WHT on attention output (non-FA path). Keyed on v_was_turbo because
+        // V may have been dequantized to f32 above (block-quantized V can't be transpose-copied);
+        // the WHT group comes from K, which is still turbo on this path.
+        if (v_was_turbo) {
             const bool k_is_turbo = (k->type == GGML_TYPE_TURBO3_0 || k->type == GGML_TYPE_TURBO4_0 || k->type == GGML_TYPE_TURBO2_0);
             const ggml_tensor * group_src = k_is_turbo ? k : v;
             const int turbo_group = (group_src->ne[0] % 128 == 0) ? 128 : 64;

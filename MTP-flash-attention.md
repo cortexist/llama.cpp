@@ -62,10 +62,58 @@ memory, not exercised here):
 | long | 17.65 | 16.80 |
 | photo | 17.50 | 16.80 |
 
-## Option 3 — turbo3 KV + FA at D=512 (FUTURE WORK)
+## Option 3 — turbo3 KV + MTP — LANDED (non-FA dequant); turbo-VEC FA at D=512 still open
 
-The real payoff: turbo KV compression *with* flash attention lets context grow well past 4 K on the
-Orin. This is a genuine CUDA-kernel project, not a graph tweak. Open problems:
+**Status (2026-06-03, RTX A5000 sm_86): turbo3 KV now works with the Gemma 4 MTP draft.** The
+crash is fixed and turbo3 + MTP produces correct output. The fix is a graph-side dequant plus a
+small `cpy.cu` kernel — **not** the big turbo-WHT FA kernel the rest of this memo discusses (that
+is still future work, but the single-token MTP op does not need it).
+
+### Root cause (instrumented 2026-06-03)
+
+A **layout mismatch**, not a generically missing feature:
+- `turbo*` KV **forces `cparams.flash_attn = 1`** even with `-fa off` (see `llama-context.cpp`
+  "turbo cache types require flash_attn", plus the hard `V cache quantization requires flash_attn`
+  check). With FA on, the V cache is stored **non-transposed** (`v_trans = v->nb[1] > v->nb[2]` is
+  false).
+- The **main model** self-attn takes the FA path and consumes non-transposed turbo V fine (why
+  plain non-MTP turbo3 works).
+- The **MTP cross-attn** is pinned **non-FA** (`build_attn_mtp` → `build_attn_mha` with
+  `force_no_flash_attn = true`, since D=512/gqa=2 has no FA kernel). The non-FA path needs V
+  transposed, so it hit `if (!v_trans) { v = ggml_cont(ggml_transpose(v)); }` — a same-type
+  `turbo3→turbo3` `ggml_cpy` → `cpy.cu:551` abort. (Every MTP layer logged `v_trans=0 fa=1
+  force_no_fa=1` right before the abort.) You **cannot** "just add a turbo3→turbo3 copy kernel":
+  transposing 128-element 3-bit WHT blocks shatters them — it is ill-defined.
+
+### The fix that landed
+
+1. `ggml/src/ggml-cuda/cpy.cu`: a `turbo3_0 → f32` dequant copy (`cpy_blck_turbo3_0_f32`,
+   mirroring the q8_0 dequant-copy and reusing `dequantize_turbo3_0`, so values match the FA /
+   mul_mat paths) + a dispatch entry; `ggml-cuda.cu` marks CPY `turbo3→f32` supported.
+2. `src/llama-graph.cpp` `build_attn_mha`: when this attn will run non-FA and V is turbo,
+   **dequantize V to f32 up front** (while still contiguous, before the permute), capture
+   `v_was_turbo`, and key the output inverse-WHT on that flag (the WHT group still comes from K,
+   which stays turbo). Only the forced-non-FA MTP path is affected; the main model's FA path is
+   untouched.
+
+**Validation (A5000):** no crash; coherent output; draft acceptance **64.9% ≈ f16's 65.6%** (a
+wrong dequant would collapse acceptance); throughput ~88–97 tk/s vs ~95–117 f16 (the dequant +
+3-bit read cost a little on this compute-bound GPU; on a bandwidth-bound Orin the KV-bandwidth
+saving may offset — untested). KV at 4 K ≈ 32 MiB vs 124 MiB f16 (~4×). **Pending an Orin
+(sm_87) rebuild to validate there.**
+
+### When to use it
+
+turbo3 + MTP is now an *option*, not the default. f16 KV already fits **128 K** context on a 16 GB
+Orin (≈3.9 GB KV; weights 4.6 + mmproj 0.9 → 9.4 GB) and doesn't run out until ~200 K+, so the
+~4× KV saving only matters at extreme contexts. Ship MTP on **f16 KV** unless you specifically
+need very long context or are tight on memory; reach for turbo3 + MTP when you do.
+
+### Still open — turbo-VEC FA at D=512 (the original "Option 3")
+
+The turbo-WHT FA kernel below is still unimplemented. It is **not** needed for MTP (single-token,
+forced non-FA, now handled by the dequant above); it would only matter for turbo3 + FA on the
+*main model's* long-context prefill. The original open problems:
 
 1. **turbo3 is coupled to the VEC kernel.** `build_attn_mtp` WHT-transforms Q (`ggml_turbo_wht`,
    llama-graph.cpp ~2521) and stores K in the turbo/WHT domain. Only the VEC turbo path
