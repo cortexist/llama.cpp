@@ -51,8 +51,10 @@ int main(int argc, char ** argv) {
     // load the draft model
     llama_model_ptr model_dft;
 
+    // For MTP (Gemma 4 assistant) the head is loaded INTO the target by
+    // common_init_from_params; there is no separate draft model/context to load.
     // TODO: simplify this logic
-    {
+    if (params.speculative.type != COMMON_SPECULATIVE_TYPE_MTP) {
         const auto & params_spec = params.speculative;
 
         auto params_dft = params;
@@ -195,6 +197,16 @@ int main(int argc, char ** argv) {
         n_drafted += draft.size(); // note: we ignore the discarded small drafts
         n_accept  += ids.size() - 1;
         n_predict += ids.size();
+
+        // MTP: h_prev for the next draft must come from the LAST ACCEPTED target output, not
+        // the default -1 (last batch output), which would point at a rejected draft's hidden
+        // state. All batch positions request logits here, so the batch index of the last
+        // accepted token is ids.size()-1. Also record acceptance for the head's streak/stats.
+        // Both are unnecessary for the classic draft path, so gate on type.
+        if (params_spec.type == COMMON_SPECULATIVE_TYPE_MTP) {
+            common_speculative_set_h_idx(spec, (int) ids.size() - 1);
+            common_speculative_accept(spec, (uint16_t) (ids.size() - 1));
+        }
 
         // process the accepted tokens and update contexts
         //

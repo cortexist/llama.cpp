@@ -85,9 +85,9 @@ After load, the target carries:
 
 CLI surface (`common/arg.cpp`, `common/common.cpp`):
 
-- `--mtp-head <path>` (preferred) and `--model-draft / -md` (back-compat alias)
+- `--model-draft / -md <path>` (mainline syntax) and `--mtp-head <path>` (fork alias)
   — feed the same `mparams_dft.path` field.
-- `--draft-block-size <B>` — head proposes `B - 1` tokens per round.
+- `--spec-draft-block-size <B>` — head proposes `B - 1` tokens per round.
 - `--gpu-layers-draft / -ngld`, `-ctkd / -ctvd` — placement and KV typing for
   the **assistant** weights when offloaded.
 
@@ -426,7 +426,7 @@ malformed assistant GGUF in either case.
 
 The repo helpers prefer a quantized assistant under `.scratch/` when one
 exists (`gemma-{e2b,e4b,…}-assistant-mtp-Q4_K_M.gguf`) and fall back to F16
-otherwise. Override with `DRAFT_GGUF=…` or pass `--mtp-head` directly.
+otherwise. Override with `DRAFT_GGUF=…` or pass `-md` / `--model-draft` directly.
 
 ### Run scripts
 
@@ -443,7 +443,7 @@ Helper scripts live under `scripts/`:
 
 Edge presets (`MTP_PRESET`):
 
-| Preset | `--draft-block-size` (B) | `--draft-max` |
+| Preset | `--spec-draft-block-size` (B) | `--spec-draft-n-max` |
 |---|---:|---:|
 | `throughput` | 2 | 6 |
 | `lift`       | 3 | 8 |

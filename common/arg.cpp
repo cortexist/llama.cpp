@@ -3328,7 +3328,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
                 params.speculative.cpuparams.n_threads = std::thread::hardware_concurrency();
             }
         }
-    ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER}));
+    ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_CLI}));
     add_opt(common_arg(
         {"-tbd", "--threads-batch-draft", "--spec-draft-threads-batch"}, "N",
         "number of threads to use during batch and prompt processing (default: same as --threads-draft)",
@@ -3338,7 +3338,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
                 params.speculative.cpuparams_batch.n_threads = std::thread::hardware_concurrency();
             }
         }
-    ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER}));
+    ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_CLI}));
     add_opt(common_arg(
         {"-Cd", "--cpu-mask-draft"}, "M",
         "Draft model CPU affinity mask. Complements cpu-range-draft (default: same as --cpu-mask)",
@@ -3538,7 +3538,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
                 throw std::invalid_argument("unknown speculative decoding type");
             }
         }
-    ).set_examples({LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_SPEC_TYPE"));
+    ).set_examples({LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_CLI}).set_env("LLAMA_ARG_SPEC_TYPE"));
     add_opt(common_arg(
         {"--draft-block-size", "--spec-draft-block-size"}, "N",
         string_format("MTP draft block size B (drafts B-1 tokens per round; default: %d)", params.speculative.draft_block_size),
@@ -3548,7 +3548,7 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
             }
             params.speculative.draft_block_size = value;
         }
-    ).set_examples({LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_SPECULATIVE}).set_env("LLAMA_ARG_DRAFT_BLOCK_SIZE"));
+    ).set_examples({LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_CLI}).set_env("LLAMA_ARG_DRAFT_BLOCK_SIZE"));
     add_opt(common_arg(
         {"--spec-ngram-size-n"}, "N",
         string_format("ngram size N for ngram-simple/ngram-map speculative decoding, length of lookup n-gram (default: %d)", params.speculative.ngram_size_n),

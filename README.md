@@ -51,9 +51,9 @@ MTP holds a steady **~1.4×** on long-form text *and* on vision generation. On t
 
 ### Tuning — draft block size
 
-`--draft-block-size B` makes the head draft `B − 1` tokens per round. On the Edge centroid head, **`B = 2` is the sweet spot** — it maximizes *both* acceptance and throughput. Larger blocks append low-probability tail tokens that drag the aggregate accept rate down *and* spend extra draft compute, so they lose on this head (same text prompts as above):
+`--spec-draft-block-size B` makes the head draft `B − 1` tokens per round. On the Edge centroid head, **`B = 2` is the sweet spot** — it maximizes *both* acceptance and throughput. Larger blocks append low-probability tail tokens that drag the aggregate accept rate down *and* spend extra draft compute, so they lose on this head (same text prompts as above):
 
-| `--draft-block-size` | Draft tokens / round | Accept | tk/s |
+| `--spec-draft-block-size` | Draft tokens / round | Accept | tk/s |
 |:---:|:---:|:---:|:---:|
 | **2** (default) | 1 | **64.3%** | **18.8** |
 | 3 | 2 | 52.7% | 18.1 |
@@ -93,7 +93,7 @@ Run Gemma 4 E4B with the MTP draft head **and** multimodal, OpenAI-compatible se
 ./build/bin/llama-server \
   -m   gemma-4-E4B-it-Q4_K_M.gguf \
   -md  gemma-4-E4B-it-assistant-mtp-Q4_K_M.gguf \
-  --spec-type draft-mtp --spec-draft-n-max 2 --draft-block-size 2 \
+  --spec-type draft-mtp --spec-draft-n-max 2 --spec-draft-block-size 2 \
   --mmproj mmproj-gemma-4-e4b-f16.gguf \
   -c 4096 -ngl 99 -ngld 99 \
   -ctk f16 -ctv f16 -ctkd f16 -ctvd f16 \
