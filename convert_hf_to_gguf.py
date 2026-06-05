@@ -7878,6 +7878,19 @@ class Gemma4AssistantModel(Gemma4Model):
         yield from super().modify_tensors(data_torch, lm_name, bid)
 
 
+@ModelBase.register("Gemma4UnifiedAssistantForCausalLM")
+class Gemma4UnifiedAssistantModel(Gemma4AssistantModel):
+    # MTP drafter for the Gemma 4 12B "Unified" target. Structurally this is the
+    # same query-only MTP head as the E4B Gemma4AssistantForCausalLM drafter
+    # (q/q_norm/o projections sharing the backbone KV, layer_scalar, pre/post
+    # projections into the backbone hidden space), so it reuses the
+    # GEMMA4_ASSISTANT graph. The only checkpoint-level difference is that the
+    # unified head ships no masked_embedding centroids / token_ordering tensors;
+    # those are simply absent here. The runtime distinguishes the variant via the
+    # backbone width (n_embd_backbone) and the absence of the centroid tensors.
+    model_arch = gguf.MODEL_ARCH.GEMMA4_ASSISTANT
+
+
 @ModelBase.register("Gemma4ForConditionalGeneration")
 class Gemma4VisionAudioModel(MmprojModel):
     has_audio_encoder = True

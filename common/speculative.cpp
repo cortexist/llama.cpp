@@ -45,7 +45,7 @@ const std::map<std::string, enum common_speculative_type> common_speculative_typ
     {"ngram_map_k4v", COMMON_SPECULATIVE_TYPE_NGRAM_MAP_K4V},
     {"ngram_mod",     COMMON_SPECULATIVE_TYPE_NGRAM_MOD},
     {"ngram_cache",   COMMON_SPECULATIVE_TYPE_NGRAM_CACHE},
-    {"mtp",           COMMON_SPECULATIVE_TYPE_MTP}
+    {"draft-mtp",     COMMON_SPECULATIVE_TYPE_MTP}
 };
 
 struct common_speculative_config {
@@ -1234,7 +1234,7 @@ std::string common_speculative_type_to_str(enum common_speculative_type type) {
         case COMMON_SPECULATIVE_TYPE_NGRAM_MAP_K4V: return "ngram_map_k4v";
         case COMMON_SPECULATIVE_TYPE_NGRAM_MOD:     return "ngram_mod";
         case COMMON_SPECULATIVE_TYPE_NGRAM_CACHE:   return "ngram_cache";
-        case COMMON_SPECULATIVE_TYPE_MTP:           return "mtp";
+        case COMMON_SPECULATIVE_TYPE_MTP:           return "draft-mtp";
         default:                                    return "unknown";
     }
 }
@@ -1303,7 +1303,7 @@ common_speculative * common_speculative_init(
         const llama_model * model_mtp = llama_model_get_mtp_assistant(model_tgt);
 
         if (!model_mtp) {
-            LOG_ERR("%s: MTP requires the assistant GGUF loaded into the target (CLI: --spec-type mtp with --mtp-head or --model-draft)\n", __func__);
+            LOG_ERR("%s: MTP requires the assistant GGUF loaded into the target (CLI: --spec-type draft-mtp with --mtp-head or --model-draft)\n", __func__);
             return nullptr;
         }
         if (!common_speculative_mtp_arch_ok(model_tgt, model_mtp)) {

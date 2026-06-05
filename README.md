@@ -93,7 +93,7 @@ Run Gemma 4 E4B with the MTP draft head **and** multimodal, OpenAI-compatible se
 ./build/bin/llama-server \
   -m   gemma-4-E4B-it-Q4_K_M.gguf \
   -md  gemma-4-E4B-it-assistant-mtp-Q4_K_M.gguf \
-  --spec-type mtp --spec-draft-n-max 2 --draft-block-size 2 \
+  --spec-type draft-mtp --spec-draft-n-max 2 --draft-block-size 2 \
   --mmproj mmproj-gemma-4-e4b-f16.gguf \
   -c 4096 -ngl 99 -ngld 99 \
   -ctk f16 -ctv f16 -ctkd f16 -ctvd f16 \
@@ -103,7 +103,7 @@ Run Gemma 4 E4B with the MTP draft head **and** multimodal, OpenAI-compatible se
 
 > **CLI note — different from `atomic`, aligned with mainline.** This fork follows **mainline
 > llama.cpp** speculative conventions: load the MTP assistant as a **draft model** with `-md`
-> (`--model-draft`), enable it with `--spec-type mtp`, and size the draft with `--spec-draft-n-max`
+> (`--model-draft`), enable it with `--spec-type draft-mtp`, and size the draft with `--spec-draft-n-max`
 > / `--spec-draft-n-min`. The `atomic` fork instead uses `--mtp-head` and `--draft-max`/`--draft-min`.
 > If you're porting a command from atomic, translate `--mtp-head → -md` and `--draft-max → --spec-draft-n-max`.
 

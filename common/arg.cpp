@@ -3492,14 +3492,14 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
     ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_CLI}).set_env("LLAMA_ARG_N_GPU_LAYERS_DRAFT"));
     add_opt(common_arg(
         {"-md", "--model-draft", "--spec-draft-model"}, "FNAME",
-        "draft model for speculative decoding, or Gemma 4 MTP assistant GGUF when using --spec-type mtp (default: unused)",
+        "draft model for speculative decoding, or Gemma 4 MTP assistant GGUF when using --spec-type draft-mtp (default: unused)",
         [](common_params & params, const std::string & value) {
             params.speculative.mparams_dft.path = value;
         }
     ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_CLI}).set_env("LLAMA_ARG_MODEL_DRAFT"));
     add_opt(common_arg(
         {"--mtp-head"}, "FNAME",
-        "alias for Gemma 4 MTP: path to gemma4_assistant GGUF (loaded into the target; use with --spec-type mtp)",
+        "alias for Gemma 4 MTP: path to gemma4_assistant GGUF (loaded into the target; use with --spec-type draft-mtp)",
         [](common_params & params, const std::string & value) {
             params.speculative.mparams_dft.path = value;
         }
@@ -3512,15 +3512,15 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_examples({LLAMA_EXAMPLE_SPECULATIVE, LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_CLI}));
     add_opt(common_arg(
-        {"--spec-type"}, "[none|draft|mtp|eagle3|ngram-cache|ngram-simple|ngram-map-k|ngram-map-k4v|ngram-mod]",
-        string_format("type of speculative decoding (default: %s). For Gemma 4 MTP use --spec-type mtp and --mtp-head (or --model-draft) pointing at gemma4_assistant GGUF.\n",
+        {"--spec-type"}, "[none|draft|draft-mtp|eagle3|ngram-cache|ngram-simple|ngram-map-k|ngram-map-k4v|ngram-mod]",
+        string_format("type of speculative decoding (default: %s). For Gemma 4 MTP use --spec-type draft-mtp and --mtp-head (or --model-draft) pointing at gemma4_assistant GGUF.\n",
             common_speculative_type_to_str(params.speculative.type).c_str()),
         [](common_params & params, const std::string & value) {
             if (value == "none") {
                 params.speculative.type = COMMON_SPECULATIVE_TYPE_NONE;
             } else if (value == "draft") {
                 params.speculative.type = COMMON_SPECULATIVE_TYPE_DRAFT;
-            } else if (value == "mtp") {
+            } else if (value == "draft-mtp") {
                 params.speculative.type = COMMON_SPECULATIVE_TYPE_MTP;
             } else if (value == "eagle3") {
                 params.speculative.type = COMMON_SPECULATIVE_TYPE_EAGLE3;

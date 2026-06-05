@@ -10,7 +10,7 @@ context, scheduler), what server-loop integration looks like, what knobs the
 operator has, what the recent design decisions were, and where the throughput
 numbers came from.
 
-For the public/user-facing section about CLI flags and `--spec-type mtp`, see
+For the public/user-facing section about CLI flags and `--spec-type draft-mtp`, see
 also `docs/speculative.md`.
 
 ---
