@@ -74,7 +74,27 @@ Same harness on an **RTX A5000** (24 GB, Ampere `sm_86`), E4B `Q4_K_M`, `B = 2`,
 
 On a big GPU, MTP buys only ~**1.07×** (vs **1.4×** on the Orin), and `turbo3` is a net *loss* — its 3-bit unpack costs compute the GPU isn't bandwidth-starved for. Note draft **acceptance is the same ~65% as on the Orin**: acceptance is a property of the model + prompt, *not* the hardware — only the throughput *payoff* is hardware-dependent. **If you have a high-end discrete GPU and don't need the KV-memory savings, plain f16 (optionally + MTP) is the simplest choice; the speculative/turbo machinery is built for the bandwidth-bound edge.**
 
-> **Scope of these numbers.** All benchmarks above are **Gemma 4 E4B**, this fork's primary target. The larger `gemma4_assistant` heads (**26B-A4B / 31B**) load and run, but their MTP throughput/acceptance haven't been measured yet — those numbers are **pending**.
+### Gemma 4 12B (unified-assistant head)
+
+The 12B "unified" target pairs with a query-only MTP drafter (no centroid head). Same harness — `scripts/bench-gemma4-mtp.sh` (`B = 2`, `-fa on`, `-ngl 99`, 3 prompts × 256 tok, greedy, **true no-head baseline**). The bandwidth-vs-compute split is even sharper on the bigger model:
+
+**Jetson Orin NX** — bandwidth-bound, MTP wins:
+
+| KV | Baseline (tk/s) | **MTP (tk/s)** | Speedup | Draft accept |
+|---|:---:|:---:|:---:|:---:|
+| f16 | 7.53 | **9.89** | **1.31×** | 74.8% |
+| turbo3 | 7.24 | 8.17 | 1.13× | 72.0% |
+
+**RTX A5000** — compute-bound, MTP loses:
+
+| KV | Baseline (tk/s) | MTP (tk/s) | Speedup | Draft accept |
+|---|:---:|:---:|:---:|:---:|
+| f16 | 66.5 | 61.7 | 0.93× | 75.6% |
+| turbo3 | 58.2 | 47.8 | 0.82× | 74.4% |
+
+The E4B story repeats, amplified by model size. On the **Orin** the 12B's decode is memory-bandwidth-bound, so MTP's accepted tokens convert to a real **1.31×** — **f16 KV + MTP is the best config** (`turbo3` helps less at 1.13× and is even slightly slower at the baseline: at 4096 ctx its KV-VRAM savings don't apply, so its per-step dequant is pure added compute). On the **A5000** the same model is compute-bound, so MTP is a net **loss** (0.93×) and `turbo3` makes it worse — identical to the E4B pattern. Draft acceptance is **~72–76% on both machines**: a model/prompt property, hardware-independent — only the throughput payoff flips sign.
+
+> **Scope of these numbers.** Benchmarks above are **Gemma 4 E4B** (this fork's primary target) and **12B** (unified-assistant head). The remaining `gemma4_assistant` heads (**26B-A4B / 31B**) load and run, but their MTP throughput/acceptance haven't been measured yet — those numbers are **pending**.
 
 ---
 
