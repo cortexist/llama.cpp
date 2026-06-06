@@ -9,12 +9,10 @@
 [![Buy Me A Coffee](https://img.shields.io/badge/-buy_me_a_coffee-gray?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/cortexist)
 
 This is a downstream fork of [`llama.cpp`](https://github.com/ggml-org/llama.cpp). It exists for **one specific job**: running **Gemma 4 E4B / E2B / 12B** with the **`gemma4_assistant` MTP draft head** *and* **multimodal inputs** (vision + audio via `--mmproj`), accelerated by **TurboQuant** KV-cache/weight compression — fast enough to be useful on edge devices like the **Jetson Orin NX**.
-
-If that exact combination isn't what you need, one of the sibling forks below is a better fit.
-
 <p align="center">
   <img src="media/webui-video.png" alt="Gemma 4 12B video understanding in the built-in WebUI" width="70%">
 </p>
+If that exact combination isn't what you need, one of the sibling forks below is a better fit.
 
 ---
 
