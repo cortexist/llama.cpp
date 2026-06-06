@@ -1,4 +1,5 @@
 import { convertPDFToImage, convertPDFToText } from './pdf-processing';
+import { convertVideoToFrames } from './video-to-frames';
 import { isSvgMimeType, svgBase64UrlToPngDataURL } from './svg-to-png';
 import { isWebpMimeType, webpBase64UrlToPngDataURL } from './webp-to-png';
 import { FileTypeCategory, AttachmentType, SpecialFileType } from '$lib/enums';
@@ -84,6 +85,47 @@ export async function parseFilesToMessageExtras(
 				});
 			} catch (error) {
 				console.error(`Failed to process audio file ${file.name}:`, error);
+			}
+		} else if (getFileTypeCategory(file.type) === FileTypeCategory.VIDEO) {
+			// Decode the video in-browser and attach evenly-spaced frames as images.
+			// Gemma 4 (and other VLMs) treat video as a frame sequence, so this rides
+			// the existing Vision (image_url) path with no server-side video decoder.
+			try {
+				const hasVisionSupport = activeModelId
+					? modelsStore.modelSupportsVision(activeModelId)
+					: false;
+
+				if (!hasVisionSupport) {
+					toast.warning(`Video "${file.name}" skipped: this model has no vision support.`, {
+						duration: 5000
+					});
+					continue;
+				}
+
+				// Reuse frames extracted at upload time if available; otherwise extract now.
+				const { frames, durationSec } =
+					file.videoFrames && file.videoFrames.length > 0
+						? { frames: file.videoFrames, durationSec: file.videoDurationSec ?? 0 }
+						: await convertVideoToFrames(file.file);
+
+				if (frames.length === 0) {
+					toast.warning(`No frames could be extracted from "${file.name}".`, { duration: 5000 });
+					continue;
+				}
+
+				// One VIDEO attachment (rendered as a single frame-player tile); the frames
+				// are expanded into individual images only when the message is sent.
+				extras.push({
+					type: AttachmentType.VIDEO,
+					name: file.name,
+					frames,
+					durationSec
+				});
+
+				toast.success(`Video "${file.name}" added (${frames.length} frames).`, { duration: 3000 });
+			} catch (error) {
+				console.error(`Failed to process video file ${file.name}:`, error);
+				toast.error(`Failed to process video "${file.name}".`, { duration: 5000 });
 			}
 		} else if (getFileTypeCategory(file.type) === FileTypeCategory.PDF) {
 			try {

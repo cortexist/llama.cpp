@@ -9,11 +9,13 @@ import {
 	FileExtensionImage,
 	FileExtensionPdf,
 	FileExtensionText,
+	FileExtensionVideo,
 	FileTypeCategory,
 	MimeTypeApplication,
 	MimeTypeAudio,
 	MimeTypeImage,
-	MimeTypeText
+	MimeTypeText,
+	MimeTypeVideo
 } from '$lib/enums';
 
 export function getFileTypeCategory(mimeType: string): FileTypeCategory | null {
@@ -34,6 +36,13 @@ export function getFileTypeCategory(mimeType: string): FileTypeCategory | null {
 		case MimeTypeAudio.WEBM:
 		case MimeTypeAudio.WEBM_OPUS:
 			return FileTypeCategory.AUDIO;
+
+		// Video (decoded to frames in-browser, sent as images)
+		case MimeTypeVideo.MP4:
+		case MimeTypeVideo.WEBM:
+		case MimeTypeVideo.QUICKTIME:
+		case MimeTypeVideo.OGG:
+			return FileTypeCategory.VIDEO;
 
 		// PDF
 		case MimeTypeApplication.PDF:
@@ -108,6 +117,13 @@ export function getFileTypeCategoryByExtension(filename: string): FileTypeCatego
 		case FileExtensionAudio.MP3:
 		case FileExtensionAudio.WAV:
 			return FileTypeCategory.AUDIO;
+
+		// Video
+		case FileExtensionVideo.MP4:
+		case FileExtensionVideo.WEBM:
+		case FileExtensionVideo.MOV:
+		case FileExtensionVideo.OGG:
+			return FileTypeCategory.VIDEO;
 
 		// PDF
 		case FileExtensionPdf.PDF:

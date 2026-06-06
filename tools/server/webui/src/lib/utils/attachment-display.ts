@@ -1,5 +1,10 @@
 import { AttachmentType, FileTypeCategory, SpecialFileType } from '$lib/enums';
-import { getFileTypeCategory, getFileTypeCategoryByExtension, isImageFile } from '$lib/utils';
+import {
+	getFileTypeCategory,
+	getFileTypeCategoryByExtension,
+	isImageFile,
+	isVideoFile
+} from '$lib/utils';
 import type {
 	AttachmentDisplayItemsOptions,
 	ChatUploadedFile,
@@ -58,30 +63,38 @@ export function getAttachmentDisplayItems(
 			size: file.size,
 			preview: file.preview,
 			isImage: getUploadedFileCategory(file) === FileTypeCategory.IMAGE,
+			isVideo: getUploadedFileCategory(file) === FileTypeCategory.VIDEO,
 			isMcpPrompt: isMcpPromptUpload(file),
 			isLoading: file.isLoading,
 			loadError: file.loadError,
 			uploadedFile: file,
-			textContent: file.textContent
+			textContent: file.textContent,
+			videoFrames: file.videoFrames,
+			videoDurationSec: file.videoDurationSec
 		});
 	}
 
 	// Add stored attachments (ChatMessage)
 	for (const [index, attachment] of attachments.entries()) {
 		const isImage = isImageFile(attachment);
+		const isVideo = isVideoFile(attachment);
 		const isMcpPrompt = isMcpPromptAttachment(attachment);
 		const isMcpResource = isMcpResourceAttachment(attachment);
+		const videoFrames = isVideo && 'frames' in attachment ? attachment.frames : undefined;
 
 		items.push({
 			id: `attachment-${index}`,
 			name: attachment.name,
-			preview: isImage && 'base64Url' in attachment ? attachment.base64Url : undefined,
+			preview: isImage && 'base64Url' in attachment ? attachment.base64Url : videoFrames?.[0],
 			isImage,
+			isVideo,
 			isMcpPrompt,
 			isMcpResource,
 			attachment,
 			attachmentIndex: index,
-			textContent: 'content' in attachment ? attachment.content : undefined
+			textContent: 'content' in attachment ? attachment.content : undefined,
+			videoFrames,
+			videoDurationSec: isVideo && 'durationSec' in attachment ? attachment.durationSec : undefined
 		});
 	}
 

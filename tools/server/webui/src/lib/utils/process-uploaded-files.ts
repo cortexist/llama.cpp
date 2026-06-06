@@ -6,6 +6,7 @@ import { settingsStore } from '$lib/stores/settings.svelte';
 import { toast } from 'svelte-sonner';
 import { getFileTypeCategory } from '$lib/utils';
 import { convertPDFToText } from './pdf-processing';
+import { convertVideoToFrames } from './video-to-frames';
 
 /**
  * Read a file as a data URL (base64 encoded)
@@ -116,6 +117,21 @@ export async function processFilesToChatUploaded(
 				// Generate preview URL for audio files
 				const preview = await readFileAsDataURL(file);
 				results.push({ ...base, preview });
+			} else if (getFileTypeCategory(file.type) === FileTypeCategory.VIDEO) {
+				// Extract frames now so the input-area can show a thumbnail and the message
+				// can render an inline frame-player; the same frames are reused on send.
+				try {
+					const { frames, durationSec } = await convertVideoToFrames(file);
+					results.push({
+						...base,
+						preview: frames[0],
+						videoFrames: frames,
+						videoDurationSec: durationSec
+					});
+				} catch (err) {
+					console.warn('Failed to extract video frames, adding without preview:', err);
+					results.push(base);
+				}
 			} else {
 				// Fallback: treat unknown files as text
 				try {

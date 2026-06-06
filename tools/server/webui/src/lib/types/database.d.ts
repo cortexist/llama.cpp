@@ -53,6 +53,15 @@ export interface DatabaseMessageExtraTextFile {
 	content: string;
 }
 
+export interface DatabaseMessageExtraVideoFile {
+	type: AttachmentType.VIDEO;
+	name: string;
+	// Frames decoded in-browser and sent to the model as images (one image_url each)
+	frames: string[];
+	// Source video duration in seconds, for the frame player's timing
+	durationSec: number;
+}
+
 export interface DatabaseMessageExtraMcpPrompt {
 	type: AttachmentType.MCP_PROMPT;
 	name: string;
@@ -75,6 +84,7 @@ export type DatabaseMessageExtra =
 	| DatabaseMessageExtraImageFile
 	| DatabaseMessageExtraTextFile
 	| DatabaseMessageExtraAudioFile
+	| DatabaseMessageExtraVideoFile
 	| DatabaseMessageExtraPdfFile
 	| DatabaseMessageExtraMcpPrompt
 	| DatabaseMessageExtraMcpResource

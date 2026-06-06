@@ -2,16 +2,19 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Alert from '$lib/components/ui/alert';
 	import { SyntaxHighlightedCode } from '$lib/components/app';
-	import { FileText, Image, Music, FileIcon, Eye, Info } from '@lucide/svelte';
+	import { FileText, Image, Music, Film, FileIcon, Eye, Info } from '@lucide/svelte';
 	import {
 		isTextFile,
 		isImageFile,
 		isPdfFile,
 		isAudioFile,
+		isVideoFile,
 		getLanguageFromFilename,
 		createBase64DataUrl
 	} from '$lib/utils';
 	import { convertPDFToImage } from '$lib/utils/browser-only';
+	import { convertVideoToFrames } from '$lib/utils/video-to-frames';
+	import ChatAttachmentVideoPlayer from './ChatAttachmentVideoPlayer.svelte';
 	import { modelsStore } from '$lib/stores/models.svelte';
 
 	interface Props {
@@ -39,6 +42,28 @@
 	let isImage = $derived(isImageFile(attachment, uploadedFile));
 	let isPdf = $derived(isPdfFile(attachment, uploadedFile));
 	let isText = $derived(isTextFile(attachment, uploadedFile));
+	let isVideo = $derived(isVideoFile(attachment, uploadedFile));
+
+	// Frames for the video player: from the stored attachment if sent, or extracted
+	// on-demand for a pending (not-yet-sent) upload.
+	let videoFrames = $state<string[]>([]);
+	let videoDurationSec = $state(0);
+
+	$effect(() => {
+		if (!isVideo) return;
+
+		if (attachment && 'frames' in attachment) {
+			videoFrames = attachment.frames;
+			videoDurationSec = 'durationSec' in attachment ? attachment.durationSec : 0;
+		} else if (uploadedFile?.file && videoFrames.length === 0) {
+			convertVideoToFrames(uploadedFile.file)
+				.then((res) => {
+					videoFrames = res.frames;
+					videoDurationSec = res.durationSec;
+				})
+				.catch((err) => console.error('Failed to extract video frames for preview:', err));
+		}
+	});
 
 	let displayPreview = $derived(
 		uploadedFile?.preview ||
@@ -56,6 +81,7 @@
 		if (isImage) return Image;
 		if (isText || isPdf) return FileText;
 		if (isAudio) return Music;
+		if (isVideo) return Film;
 
 		return FileIcon;
 	});
@@ -268,6 +294,23 @@
 						{displayName}
 					</p>
 				</div>
+			</div>
+		{:else if isVideo}
+			<div class="flex flex-col items-center justify-center gap-3 p-6">
+				{#if videoFrames.length > 0}
+					<ChatAttachmentVideoPlayer
+						frames={videoFrames}
+						durationSec={videoDurationSec}
+						imgClass="max-h-[60vh] w-auto max-w-full"
+					/>
+				{:else}
+					<Film class="mx-auto h-16 w-16 text-muted-foreground" />
+					<p class="text-muted-foreground">Extracting video frames…</p>
+				{/if}
+
+				<p class="text-sm text-muted-foreground">
+					{displayName} · {videoFrames.length} frames sent to the model
+				</p>
 			</div>
 		{:else}
 			<div class="flex items-center justify-center p-8">

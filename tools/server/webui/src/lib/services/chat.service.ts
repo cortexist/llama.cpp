@@ -846,6 +846,29 @@ export class ChatService {
 			}
 		}
 
+		// Videos are sent as their extracted frames (one image_url per frame)
+		const videoFiles = message.extra.filter(
+			(extra: DatabaseMessageExtra): extra is DatabaseMessageExtraVideoFile =>
+				extra.type === AttachmentType.VIDEO
+		);
+
+		for (const video of videoFiles) {
+			// Tell the model these images are an ordered video sequence, not separate
+			// stills — without this cue it describes them as a single still image.
+			const durationHint = video.durationSec ? ` spanning ~${Math.round(video.durationSec)}s` : '';
+			contentParts.push({
+				type: ContentPartType.TEXT,
+				text: `The following ${video.frames.length} images are sequential frames sampled in chronological order from the video "${video.name}"${durationHint}. Treat them together as a single video.`
+			});
+
+			for (const frame of video.frames) {
+				contentParts.push({
+					type: ContentPartType.IMAGE_URL,
+					image_url: { url: frame }
+				});
+			}
+		}
+
 		const mcpPrompts = message.extra.filter(
 			(extra: DatabaseMessageExtra): extra is DatabaseMessageExtraMcpPrompt =>
 				extra.type === AttachmentType.MCP_PROMPT

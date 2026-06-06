@@ -10,6 +10,9 @@ export interface ChatUploadedFile {
 	file: File;
 	preview?: string;
 	textContent?: string;
+	// Video: frames extracted at upload (reused on send) + source duration for player timing
+	videoFrames?: string[];
+	videoDurationSec?: number;
 	mcpPrompt?: {
 		serverName: string;
 		promptName: string;
@@ -25,6 +28,7 @@ export interface ChatAttachmentDisplayItem {
 	size?: number;
 	preview?: string;
 	isImage: boolean;
+	isVideo?: boolean;
 	isMcpPrompt?: boolean;
 	isMcpResource?: boolean;
 	isLoading?: boolean;
@@ -33,6 +37,9 @@ export interface ChatAttachmentDisplayItem {
 	attachment?: DatabaseMessageExtra;
 	attachmentIndex?: number;
 	textContent?: string;
+	// Video frame-player data (for inline rendering in the list)
+	videoFrames?: string[];
+	videoDurationSec?: number;
 }
 
 export interface ChatAttachmentPreviewItem {

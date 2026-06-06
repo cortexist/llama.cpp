@@ -62,6 +62,7 @@ export type {
 	DatabaseMessageExtraMcpResource,
 	DatabaseMessageExtraPdfFile,
 	DatabaseMessageExtraTextFile,
+	DatabaseMessageExtraVideoFile,
 	DatabaseMessageExtra,
 	DatabaseMessage,
 	ExportedConversation,

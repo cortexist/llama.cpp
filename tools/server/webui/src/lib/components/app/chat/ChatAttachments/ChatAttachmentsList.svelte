@@ -9,6 +9,7 @@
 		DialogChatAttachmentsViewAll,
 		DialogMcpResourcePreview
 	} from '$lib/components/app';
+	import ChatAttachmentVideoPlayer from './ChatAttachmentVideoPlayer.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { AttachmentType } from '$lib/enums';
 	import type {
@@ -147,7 +148,13 @@
 							attachment={toMcpResourceAttachment(mcpResource, item.id)}
 							onClick={() => openMcpResourcePreview(mcpResource)}
 						/>
-					{:else if item.isImage && item.preview}
+					{:else if item.isVideo && readonly && item.videoFrames && item.videoFrames.length > 0}
+						<ChatAttachmentVideoPlayer
+							class="flex-shrink-0 {limitToSingleRow ? 'first:ml-4 last:mr-4' : ''}"
+							frames={item.videoFrames}
+							durationSec={item.videoDurationSec ?? 0}
+						/>
+					{:else if (item.isImage || item.isVideo) && item.preview}
 						<ChatAttachmentThumbnailImage
 							class="flex-shrink-0 cursor-pointer {limitToSingleRow ? 'first:ml-4 last:mr-4' : ''}"
 							id={item.id}
@@ -225,7 +232,12 @@
 							attachment={toMcpResourceAttachment(mcpResource, item.id)}
 							onClick={() => openMcpResourcePreview(mcpResource)}
 						/>
-					{:else if item.isImage && item.preview}
+					{:else if item.isVideo && readonly && item.videoFrames && item.videoFrames.length > 0}
+						<ChatAttachmentVideoPlayer
+							frames={item.videoFrames}
+							durationSec={item.videoDurationSec ?? 0}
+						/>
+					{:else if (item.isImage || item.isVideo) && item.preview}
 						<ChatAttachmentThumbnailImage
 							class="cursor-pointer"
 							id={item.id}
