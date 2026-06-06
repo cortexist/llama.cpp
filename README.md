@@ -137,17 +137,6 @@ Full details on how MTP works here — graph, KV sharing, the speculative driver
 
 ---
 
-## Flash attention — work in progress
-
-The Gemma 4 MTP cross-attention has an unusual shape (**head_dim 512, gqa_ratio 2**) for which no stock CUDA flash-attention kernel is compiled, so historically the MTP path required **`-fa off`**.
-
-- ✅ **Landed:** `-fa on` now works with **f16 KV** — the tiny single-token MTP op is routed through the non-FA path while the rest of the model keeps full flash attention.
-- 🚧 **In progress:** **turbo3 KV + flash attention** at D=512 (the real prize — memory savings → much longer context). This needs a turbo-WHT-aware 512-dim kernel.
-
-Until that lands, run MTP with `-fa off` (as above) for the proven path. Full diagnosis and the implementation plan are in **[MTP-flash-attention.md](MTP-flash-attention.md)**.
-
----
-
 ## TurboQuant — KV cache & weight compression
 
 WHT-rotated low-bit quantization with backend-native kernels (Metal `TurboFlash`, CUDA, Vulkan, HIP).
