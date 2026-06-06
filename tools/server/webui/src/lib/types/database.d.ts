@@ -60,6 +60,8 @@ export interface DatabaseMessageExtraVideoFile {
 	frames: string[];
 	// Source video duration in seconds, for the frame player's timing
 	durationSec: number;
+	// Audio track as 16 kHz mono WAV (base64); sent as input_audio + played in the player
+	audioWavBase64?: string;
 }
 
 export interface DatabaseMessageExtraMcpPrompt {

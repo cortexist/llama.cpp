@@ -853,18 +853,30 @@ export class ChatService {
 		);
 
 		for (const video of videoFiles) {
-			// Tell the model these images are an ordered video sequence, not separate
-			// stills — without this cue it describes them as a single still image.
+			// Tell the model these images are an ordered video sequence (otherwise it
+			// describes them as a single still), and — crucially — announce the audio
+			// track when present, or it assumes the video is silent and ignores it.
 			const durationHint = video.durationSec ? ` spanning ~${Math.round(video.durationSec)}s` : '';
+			const audioClause = video.audioWavBase64
+				? ", followed by the video's audio track. Treat the frames and the audio together as a single video with sound, and use both to answer."
+				: '. Treat them together as a single video.';
 			contentParts.push({
 				type: ContentPartType.TEXT,
-				text: `The following ${video.frames.length} images are sequential frames sampled in chronological order from the video "${video.name}"${durationHint}. Treat them together as a single video.`
+				text: `The following ${video.frames.length} images are sequential frames sampled at ~1 fps in chronological order from the video "${video.name}"${durationHint}${audioClause}`
 			});
 
 			for (const frame of video.frames) {
 				contentParts.push({
 					type: ContentPartType.IMAGE_URL,
 					image_url: { url: frame }
+				});
+			}
+
+			// Include the video's audio track (Gemma 4 takes video as frames + audio)
+			if (video.audioWavBase64) {
+				contentParts.push({
+					type: ContentPartType.INPUT_AUDIO,
+					input_audio: { data: video.audioWavBase64, format: 'wav' }
 				});
 			}
 		}

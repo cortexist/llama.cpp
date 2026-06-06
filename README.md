@@ -12,6 +12,10 @@ This is a downstream fork of [`llama.cpp`](https://github.com/ggml-org/llama.cpp
 
 If that exact combination isn't what you need, one of the sibling forks below is a better fit.
 
+<p align="center">
+  <img src="media/webui-video.png" alt="Gemma 4 12B video understanding in the built-in WebUI" width="70%">
+</p>
+
 ---
 
 ## When to Use This Fork?
@@ -157,6 +161,20 @@ WHT-rotated low-bit quantization with backend-native kernels (Metal `TurboFlash`
 Weights can also be quantized to `TQ3_1S` / `TQ4_1S` via `llama-quantize`. See the upstream forks above for the full TurboQuant documentation.
 
 > **Note:** MTP runs on **`-ctk f16` KV** by default. `turbo*` KV + MTP **also works** (the MTP cross-attn dequantizes the turbo V on its non-FA path), giving ~4× smaller KV — but since f16 KV already fits 128 K context on a 16 GB Orin, reach for `turbo3` with MTP only when you need very long context or are memory-tight. Plain (non-MTP) inference uses `turbo*` KV with `-fa on` as usual. Details in **[MTP-flash-attention.md](MTP-flash-attention.md)** (Option 3).
+
+---
+
+## Video input (Gemma 4 12B) — client-side
+
+The built-in WebUI accepts **video** files for **Gemma 4 12B**. Gemma 4 treats a video as a **sequence of frames plus its audio track**, and the 12B's encoder-free design (`gemma4uv` vision, `gemma4ua` audio) ingests both directly. Rather than wait on a server-side video path, the WebUI does the decoding **in the browser**:
+
+- Samples frames at **~1 fps** (HTML5 `<video>` + canvas), capped at 32, sent as images on the existing vision (`image_url`) path.
+- Extracts the **audio track** to 16 kHz mono WAV and sends it as `input_audio` on the existing audio (`gemma4ua`) path.
+- Prepends a short cue so the model treats the frames **and** audio together as one video with sound.
+
+In the chat, the video renders as an inline **frame player** (play, jump-to-start/end, in-sync audio with mute) that shows exactly the frames the model received.
+
+**Why client-side?** Mainline [ggml-org/llama.cpp#22830](https://github.com/ggml-org/llama.cpp/pull/22830) added the WebUI's video-upload button, but it hasn't closed the loop: it ships the raw file as an `input_video` content part that **nothing consumes** — there is no `mtmd` video decoder, and the server rejects `input_video` (`unsupported content[].type`). Native server-side video is still only a plan ([#18389](https://github.com/ggml-org/llama.cpp/issues/18389)). Doing the frame/audio extraction in the browser keeps the server dependency-free (no ffmpeg/libav) and works today on the multimodal paths the 12B already supports.
 
 ---
 

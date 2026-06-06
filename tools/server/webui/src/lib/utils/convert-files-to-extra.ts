@@ -119,7 +119,8 @@ export async function parseFilesToMessageExtras(
 					type: AttachmentType.VIDEO,
 					name: file.name,
 					frames,
-					durationSec
+					durationSec,
+					audioWavBase64: file.videoAudioWavBase64
 				});
 
 				toast.success(`Video "${file.name}" added (${frames.length} frames).`, { duration: 3000 });

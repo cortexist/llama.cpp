@@ -48,6 +48,7 @@
 	// on-demand for a pending (not-yet-sent) upload.
 	let videoFrames = $state<string[]>([]);
 	let videoDurationSec = $state(0);
+	let videoAudioWav = $state<string | undefined>(undefined);
 
 	$effect(() => {
 		if (!isVideo) return;
@@ -55,13 +56,23 @@
 		if (attachment && 'frames' in attachment) {
 			videoFrames = attachment.frames;
 			videoDurationSec = 'durationSec' in attachment ? attachment.durationSec : 0;
-		} else if (uploadedFile?.file && videoFrames.length === 0) {
-			convertVideoToFrames(uploadedFile.file)
-				.then((res) => {
-					videoFrames = res.frames;
-					videoDurationSec = res.durationSec;
-				})
-				.catch((err) => console.error('Failed to extract video frames for preview:', err));
+			videoAudioWav = 'audioWavBase64' in attachment ? attachment.audioWavBase64 : undefined;
+		} else if (uploadedFile) {
+			videoAudioWav = uploadedFile.videoAudioWavBase64;
+
+			if (uploadedFile.videoFrames && uploadedFile.videoFrames.length > 0) {
+				// Frames were already extracted at upload time — reuse them (no re-decode)
+				videoFrames = uploadedFile.videoFrames;
+				videoDurationSec = uploadedFile.videoDurationSec ?? 0;
+			} else if (uploadedFile.file && videoFrames.length === 0) {
+				// Fallback: extract on demand if not pre-extracted
+				convertVideoToFrames(uploadedFile.file)
+					.then((res) => {
+						videoFrames = res.frames;
+						videoDurationSec = res.durationSec;
+					})
+					.catch((err) => console.error('Failed to extract video frames for preview:', err));
+			}
 		}
 	});
 
@@ -301,15 +312,31 @@
 					<ChatAttachmentVideoPlayer
 						frames={videoFrames}
 						durationSec={videoDurationSec}
+						audioWavBase64={videoAudioWav}
 						imgClass="max-h-[60vh] w-auto max-w-full"
 					/>
+				{:else if uploadedFile?.preview || displayPreview}
+					<!-- frames not ready yet: show the first-frame thumbnail with a spinner overlay -->
+					<div class="relative inline-block">
+						<img
+							src={uploadedFile?.preview ?? displayPreview}
+							alt={displayName}
+							class="max-h-[60vh] w-auto max-w-full rounded-md object-contain opacity-70"
+						/>
+						<div class="absolute inset-0 flex items-center justify-center">
+							<div
+								class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
+							></div>
+						</div>
+					</div>
+					<p class="text-muted-foreground text-sm">Extracting video frames…</p>
 				{:else}
 					<Film class="mx-auto h-16 w-16 text-muted-foreground" />
 					<p class="text-muted-foreground">Extracting video frames…</p>
 				{/if}
 
 				<p class="text-sm text-muted-foreground">
-					{displayName} · {videoFrames.length} frames sent to the model
+					{displayName}{#if videoFrames.length > 0} · {videoFrames.length} frames sent to the model{/if}
 				</p>
 			</div>
 		{:else}

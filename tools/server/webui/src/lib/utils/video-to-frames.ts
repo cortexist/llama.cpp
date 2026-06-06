@@ -7,7 +7,7 @@
  * (image_url) path — no server-side video decoder required.
  */
 
-const DEFAULT_MAX_FRAMES = 12; // cap total frames (each frame costs image tokens)
+const DEFAULT_MAX_FRAMES = 32; // ~1 fps up to ~30s (aligns with the 30s audio cap); bounds tokens
 const MAX_DIMENSION = 512; // downscale longest side to keep token count modest
 
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {

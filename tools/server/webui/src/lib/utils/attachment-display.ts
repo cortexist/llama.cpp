@@ -70,7 +70,8 @@ export function getAttachmentDisplayItems(
 			uploadedFile: file,
 			textContent: file.textContent,
 			videoFrames: file.videoFrames,
-			videoDurationSec: file.videoDurationSec
+			videoDurationSec: file.videoDurationSec,
+			videoAudioWavBase64: file.videoAudioWavBase64
 		});
 	}
 
@@ -94,7 +95,9 @@ export function getAttachmentDisplayItems(
 			attachmentIndex: index,
 			textContent: 'content' in attachment ? attachment.content : undefined,
 			videoFrames,
-			videoDurationSec: isVideo && 'durationSec' in attachment ? attachment.durationSec : undefined
+			videoDurationSec: isVideo && 'durationSec' in attachment ? attachment.durationSec : undefined,
+			videoAudioWavBase64:
+				isVideo && 'audioWavBase64' in attachment ? attachment.audioWavBase64 : undefined
 		});
 	}
 

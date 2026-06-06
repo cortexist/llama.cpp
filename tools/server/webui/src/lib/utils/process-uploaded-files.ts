@@ -7,6 +7,7 @@ import { toast } from 'svelte-sonner';
 import { getFileTypeCategory } from '$lib/utils';
 import { convertPDFToText } from './pdf-processing';
 import { convertVideoToFrames } from './video-to-frames';
+import { extractVideoAudioWav } from './extract-video-audio';
 
 /**
  * Read a file as a data URL (base64 encoded)
@@ -121,12 +122,16 @@ export async function processFilesToChatUploaded(
 				// Extract frames now so the input-area can show a thumbnail and the message
 				// can render an inline frame-player; the same frames are reused on send.
 				try {
-					const { frames, durationSec } = await convertVideoToFrames(file);
+					const [{ frames, durationSec }, audio] = await Promise.all([
+						convertVideoToFrames(file),
+						extractVideoAudioWav(file).catch(() => null)
+					]);
 					results.push({
 						...base,
 						preview: frames[0],
 						videoFrames: frames,
-						videoDurationSec: durationSec
+						videoDurationSec: durationSec,
+						videoAudioWavBase64: audio?.wavBase64
 					});
 				} catch (err) {
 					console.warn('Failed to extract video frames, adding without preview:', err);

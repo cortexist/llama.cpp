@@ -13,6 +13,8 @@ export interface ChatUploadedFile {
 	// Video: frames extracted at upload (reused on send) + source duration for player timing
 	videoFrames?: string[];
 	videoDurationSec?: number;
+	// Video audio track as 16 kHz mono WAV (base64), sent to the model + played in the player
+	videoAudioWavBase64?: string;
 	mcpPrompt?: {
 		serverName: string;
 		promptName: string;
@@ -40,6 +42,7 @@ export interface ChatAttachmentDisplayItem {
 	// Video frame-player data (for inline rendering in the list)
 	videoFrames?: string[];
 	videoDurationSec?: number;
+	videoAudioWavBase64?: string;
 }
 
 export interface ChatAttachmentPreviewItem {

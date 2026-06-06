@@ -299,11 +299,29 @@
 		}
 
 		if (supportedFiles.length > 0) {
-			const processed = await processFilesToChatUploaded(
-				supportedFiles,
-				activeModelId ?? undefined
-			);
-			uploadedFiles = [...uploadedFiles, ...processed];
+			// Show loading placeholders immediately — extraction (video frames + audio)
+			// can take a few seconds for large files.
+			const placeholders: ChatUploadedFile[] = supportedFiles.map((f) => ({
+				id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+				name: f.name,
+				size: f.size,
+				type: f.type,
+				file: f,
+				isLoading: true
+			}));
+			uploadedFiles = [...uploadedFiles, ...placeholders];
+			const placeholderIds = new Set(placeholders.map((p) => p.id));
+
+			try {
+				const processed = await processFilesToChatUploaded(
+					supportedFiles,
+					activeModelId ?? undefined
+				);
+				uploadedFiles = [...uploadedFiles.filter((f) => !placeholderIds.has(f.id)), ...processed];
+			} catch (err) {
+				console.error('Failed to process uploaded files:', err);
+				uploadedFiles = uploadedFiles.filter((f) => !placeholderIds.has(f.id));
+			}
 		}
 	}
 

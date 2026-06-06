@@ -114,7 +114,20 @@
 				onScrollableChange={(scrollable) => (isScrollable = scrollable)}
 			>
 				{#each displayItems as item (item.id)}
-					{#if item.isMcpPrompt}
+					{#if item.isLoading}
+						<div
+							class="flex h-24 w-32 flex-shrink-0 flex-col items-center justify-center gap-2 rounded-md border bg-muted/30 {limitToSingleRow
+								? 'first:ml-4 last:mr-4'
+								: ''}"
+						>
+							<div
+								class="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"
+							></div>
+							<span class="max-w-[7rem] truncate px-1 text-xs text-muted-foreground">
+								{item.name}
+							</span>
+						</div>
+					{:else if item.isMcpPrompt}
 						{@const mcpPrompt =
 							item.attachment?.type === AttachmentType.MCP_PROMPT
 								? (item.attachment as DatabaseMessageExtraMcpPrompt)
@@ -153,6 +166,7 @@
 							class="flex-shrink-0 {limitToSingleRow ? 'first:ml-4 last:mr-4' : ''}"
 							frames={item.videoFrames}
 							durationSec={item.videoDurationSec ?? 0}
+							audioWavBase64={item.videoAudioWavBase64}
 						/>
 					{:else if (item.isImage || item.isVideo) && item.preview}
 						<ChatAttachmentThumbnailImage
@@ -200,7 +214,20 @@
 		{:else}
 			<div class="flex flex-wrap items-start justify-end gap-3">
 				{#each displayItems as item (item.id)}
-					{#if item.isMcpPrompt}
+					{#if item.isLoading}
+						<div
+							class="flex h-24 w-32 flex-shrink-0 flex-col items-center justify-center gap-2 rounded-md border bg-muted/30 {limitToSingleRow
+								? 'first:ml-4 last:mr-4'
+								: ''}"
+						>
+							<div
+								class="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"
+							></div>
+							<span class="max-w-[7rem] truncate px-1 text-xs text-muted-foreground">
+								{item.name}
+							</span>
+						</div>
+					{:else if item.isMcpPrompt}
 						{@const mcpPrompt =
 							item.attachment?.type === AttachmentType.MCP_PROMPT
 								? (item.attachment as DatabaseMessageExtraMcpPrompt)
@@ -236,6 +263,7 @@
 						<ChatAttachmentVideoPlayer
 							frames={item.videoFrames}
 							durationSec={item.videoDurationSec ?? 0}
+							audioWavBase64={item.videoAudioWavBase64}
 						/>
 					{:else if (item.isImage || item.isVideo) && item.preview}
 						<ChatAttachmentThumbnailImage
