@@ -274,7 +274,21 @@ static int eval_message(mtmd_cli_context & ctx, common_chat_msg & msg) {
     return 0;
 }
 
+// An exception that escapes main() dies very differently per platform: glibc
+// prints the what() at terminate, but MSVC __fastfail()s with 0xC0000409 and
+// NO message — an init error like "this custom template is not supported, try
+// using --jinja" came out as an undebuggable Windows-only "crash". Print it.
+static int main_inner(int argc, char ** argv);
 int main(int argc, char ** argv) {
+    try {
+        return main_inner(argc, argv);
+    } catch (const std::exception & ex) {
+        fprintf(stderr, "error: %s\n", ex.what());
+        return 1;
+    }
+}
+
+static int main_inner(int argc, char ** argv) {
     std::setlocale(LC_NUMERIC, "C");
 
     ggml_time_init();
