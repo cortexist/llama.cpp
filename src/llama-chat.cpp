@@ -401,8 +401,10 @@ int32_t llm_chat_apply_template(
         }
     } else if (tmpl == LLM_CHAT_TEMPLATE_GEMMA4) {
         // gemma 4: unlike older gemma, system is a real turn here ("assistant"
-        // is still "model"). Tool calls and thinking need --jinja; this covers
-        // plain chat so the model at least RUNS without it.
+        // is still "model"). Tool calls and thinking (<|tool_call>, <|think|>,
+        // <|channel>) need --jinja; this covers plain chat so the model at
+        // least RUNS without it. Reference:
+        // https://ai.google.dev/gemma/docs/core/prompt-formatting-gemma4
         for (auto message : chat) {
             std::string role(message->role);
             role = role == "assistant" ? "model" : role;
