@@ -3078,6 +3078,10 @@ bool clip_image_encode(struct clip_ctx * ctx, const int n_threads, clip_image_f3
     clip_image_f32_ptr img_copy(clip_image_f32_init());
     *img_copy = *img;
     imgs.entries.push_back(std::move(img_copy));
+    // the batch must carry the modality: without this, audio encodes take the
+    // image branch of the input fill (nx*ny*3 planar values for an nx*ny mel)
+    // and die on the inp_raw element-count assert
+    imgs.is_audio = ctx->model.modality == CLIP_MODALITY_AUDIO;
 
     return clip_image_batch_encode(ctx, n_threads, &imgs, vec);
 }

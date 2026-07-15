@@ -42,6 +42,7 @@ static const std::map<std::string, llm_chat_template> LLM_CHAT_TEMPLATES = {
     { "zephyr",            LLM_CHAT_TEMPLATE_ZEPHYR            },
     { "monarch",           LLM_CHAT_TEMPLATE_MONARCH           },
     { "gemma",             LLM_CHAT_TEMPLATE_GEMMA             },
+    { "gemma4",            LLM_CHAT_TEMPLATE_GEMMA4            },
     { "orion",             LLM_CHAT_TEMPLATE_ORION             },
     { "openchat",          LLM_CHAT_TEMPLATE_OPENCHAT          },
     { "vicuna",            LLM_CHAT_TEMPLATE_VICUNA            },
@@ -151,6 +152,10 @@ llm_chat_template llm_chat_detect_template(const std::string & tmpl) {
         return LLM_CHAT_TEMPLATE_ZEPHYR;
     } else if (tmpl_contains("bos_token + message['role']")) {
         return LLM_CHAT_TEMPLATE_MONARCH;
+    } else if (tmpl_contains("<|turn>")) {
+        // gemma 4's jinja is a 16 KB program (tools, thinking, media), but its
+        // chat skeleton is just <|turn>role\n ... <turn|>\n
+        return LLM_CHAT_TEMPLATE_GEMMA4;
     } else if (tmpl_contains("<start_of_turn>")) {
         return LLM_CHAT_TEMPLATE_GEMMA;
     } else if (tmpl_contains("'\\n\\nAssistant: ' + eos_token")) {
@@ -393,6 +398,20 @@ int32_t llm_chat_apply_template(
         }
         if (add_ass) {
             ss << "<start_of_turn>model\n";
+        }
+    } else if (tmpl == LLM_CHAT_TEMPLATE_GEMMA4) {
+        // gemma 4: unlike older gemma, system is a real turn here ("assistant"
+        // is still "model"). Tool calls and thinking (<|tool_call>, <|think|>,
+        // <|channel>) need --jinja; this covers plain chat so the model at
+        // least RUNS without it. Reference:
+        // https://ai.google.dev/gemma/docs/core/prompt-formatting-gemma4
+        for (auto message : chat) {
+            std::string role(message->role);
+            role = role == "assistant" ? "model" : role;
+            ss << "<|turn>" << role << "\n" << trim(message->content) << "<turn|>\n";
+        }
+        if (add_ass) {
+            ss << "<|turn>model\n";
         }
     } else if (tmpl == LLM_CHAT_TEMPLATE_ORION) {
         // OrionStarAI/Orion-14B-Chat
