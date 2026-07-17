@@ -8,6 +8,38 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Buy Me A Coffee](https://img.shields.io/badge/-buy_me_a_coffee-gray?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/cortexist)
 
+> [!IMPORTANT]
+> ## ⚰️ This fork has reached end of life — upstream caught up (June 2026)
+>
+> Days after this fork was cut, upstream `llama.cpp` merged everything it was
+> created for:
+>
+> - **Gemma 4 MTP speculative decoding** — framework
+>   [#22673](https://github.com/ggml-org/llama.cpp/pull/22673) (May 16),
+>   Gemma 4 [#23398](https://github.com/ggml-org/llama.cpp/pull/23398)
+>   (June 7), **E2B/E4B assistant heads**
+>   [#24282](https://github.com/ggml-org/llama.cpp/pull/24282) (June 8).
+> - **MTP and multimodal now work together** upstream — we verified it live
+>   on build `b10054` (2026-07-17): one `llama-server` with `--mmproj` + MTP
+>   head, image prompt decoded *with* active speculation (45% draft
+>   acceptance), text at 98.8%.
+> - ggml-org publishes **official `mtp-*.gguf` heads** next to model and
+>   mmproj files (e.g.
+>   [`ggml-org/gemma-4-E4B-it-GGUF`](https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF));
+>   `llama-server -hf ggml-org/gemma-4-E4B-it-GGUF:Q4_0 --spec-type draft-mtp`
+>   downloads all three. Upstream's CUDA kernels also measure a few percent
+>   faster than this fork's base on the same GGUFs and hardware.
+>
+> **New users should use [upstream llama.cpp](https://github.com/ggml-org/llama.cpp).**
+> This fork remains available unmaintained for its one still-unique piece —
+> **TurboQuant** KV-cache/weight compression (see the `turbo` lineage below) —
+> and as the historical record of the June 2026 benchmarks that follow.
+>
+> ⚠️ One migration gotcha: assistant-head GGUFs converted by *this fork*
+> declare the architecture `gemma4_assistant` (underscore) and **will not
+> load upstream** (which registered `gemma4-assistant`). Use the ggml-org
+> heads instead of re-using this fork's converted heads.
+
 This is a downstream fork of [`llama.cpp`](https://github.com/ggml-org/llama.cpp). It exists for **one specific job**: running **Gemma 4 E4B / E2B / 12B** with the **`gemma4_assistant` MTP draft head** *and* **multimodal inputs** (vision + audio via `--mmproj`), accelerated by **TurboQuant** KV-cache/weight compression — fast enough to be useful on edge devices like the **Jetson Orin NX**.
 <p align="center">
   <img src="media/webui-video.png" alt="Gemma 4 12B video understanding in the built-in WebUI" width="70%">
