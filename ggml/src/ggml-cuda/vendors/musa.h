@@ -74,6 +74,7 @@
 #define cudaMemcpyDeviceToHost musaMemcpyDeviceToHost
 #define cudaMemcpyHostToDevice musaMemcpyHostToDevice
 #define cudaMemcpyKind musaMemcpyKind
+#define cudaMemcpyFromSymbol musaMemcpyFromSymbol
 #define cudaMemcpyToSymbol musaMemcpyToSymbol
 #define cudaMemset musaMemset
 #define cudaMemsetAsync musaMemsetAsync
